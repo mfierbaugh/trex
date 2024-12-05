@@ -1,0 +1,44 @@
+name: trex_test
+
+mgmt:
+  network: mgmt_intf
+  bridge: mgmt_bridge
+  ipv4-subnet: 198.18.128.0/18
+  ipv4-gw: 198.18.130.5
+
+topology:
+  kinds:     
+    xrd:
+      kind: cisco_xrd
+      image: ${XRD_IMAGE:=ios-xr/xrd-control-plane}:${XRD_VERSION:=24.2.2}
+      env:
+        CLAB_MGMT_VRF: Mgmt-intf
+        IPv4_GW: 198.18.128.1
+
+  nodes:
+    trex1:
+      kind: linux
+      image: mfierbau/cisco-trex:3.06
+      image-pull-policy: Never
+      mgmt-ipv4: 198.18.130.8
+      ports:
+        - "4500:4500"
+        - "4501:4501"
+        - "4507:4507"
+        - "4500:4500/udp"
+        - "4501:4501/udp"
+        - "4507:4507/udp"
+      exec:
+        - ip addr add 172.100.0.2/24 dev eth1
+        - ip addr add 172.200.0.2/24 dev eth2
+#        - ./t-rex-64 -i --cfg /etc/trex_cfg.yaml
+
+    PE.21:
+      kind: xrd
+      startup-config: xrd_config.cfg
+      mgmt-ipv4: 198.18.130.21
+
+  links:
+    - endpoints: ["trex1:eth1","PE.21:Gi0-0-0-0"]
+    - endpoints: ["trex1:eth2","PE.21:Gi0-0-0-1"]
+
